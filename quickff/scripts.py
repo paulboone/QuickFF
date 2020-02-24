@@ -135,7 +135,7 @@ def qff_input_ei(args=None):
     else:
         args =  qff_input_ei_parse_args(args)
     # Load system file
-    if args.fn_sys.endswith('.fchk'):
+    if args.fn_sys.endswith('.fchk') or args.fn_sys.endswith('.xml'):
         numbers, coords, energy, grad, hess, masses, rvecs, pbc = read_abinitio(args.fn_sys, do_hess=False)
         system = System(numbers, coords, rvecs=None, charges=None, radii=None, masses=masses)
         system.detect_bonds()
