@@ -28,6 +28,7 @@
 from __future__ import print_function
 
 from argparse import ArgumentParser
+import csv
 import sys, os
 
 import h5py as h5
@@ -112,7 +113,9 @@ def qff_input_ei_parse_args(args=None):
              'to a location within that file where the charges can be found. If '
              'fn_charges is an HDF5 file, path is the location of a dataset containing '
              'the charges, e.g. \'/charges\'. If fn_charges is a MolMod CHK file, path '
-             'is the label of the dataset that contains the atomic charges.'
+             'is the label of the dataset that contains the atomic charges. If fn_charges '
+             'is an xyz file, path is the column index containing the charge (likely 4 '
+             'since an xyz file will usually have the fields: type x y z q).'
     )
     parser.add_argument(
         'fn_out', default='pars_ei.txt', nargs='?',
@@ -125,7 +128,6 @@ def qff_input_ei_parse_args(args=None):
     if args.charges.count(':') != 1:
         parser.error('The argument charges must contain exactly one colon.')
     return args
-
 
 def qff_input_ei(args=None):
     if args is None:
@@ -169,6 +171,17 @@ def qff_input_ei(args=None):
         if args.gaussian:
             if 'radii' in list(sample.keys()):
                 radii = average(sample['radii'], ffatypes, fmt='dict')
+    elif fn_charges.endswith('.xyz'):
+        with open(fn_charges, mode='r') as f:
+            num_rows = int(next(f))
+            comment = next(f)
+            xyz_rows= csv.reader(f, delimiter=" ", skipinitialspace=True)
+            charges = [float(row[int(path)]) for row in xyz_rows]
+            if len(charges) != num_rows:
+                raise IOError('The number of charges read from XYZ file (%d) does not match count on first line (%d)' % (num_rows, len(charges)))
+        radii = None
+        if args.gaussian:
+            radii = average(get_ei_radii(system.numbers), ffatypes, fmt='dict')
     else:
         raise IOError('Invalid extension, fn_charges should be a HDF5 or a CHK file.')
 
